@@ -276,3 +276,5 @@ In this tutorial you've build the image on your local machine.
 For a real application, one would commit `.dockerignore` and `Dockerfile` to Git.
 Then use something like GitHub Actions to build the docker image and push it to
 a registry for easy deployment.
+
+[Here](https://gist.github.com/rpede/e1c7fcbe3383dd25b89ef5da85fe9004) are the entire Dockerfile for reference.
