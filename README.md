@@ -108,11 +108,10 @@ Now, that's a lot better.
 Just including some source code shouldn't add much in size compared to the base
 image (unless your project is gigantic).
 
-### Install dependencies and build
+### Install dependencies
 
 That was a bit of a detour.
-Let's finish the build stage by installing dependencies and transpile aka build
-the code.
+To get back on track, we need to install dependencies before we can build.
 
 Replace the content of `Dockerfile` with:
 
@@ -120,18 +119,75 @@ Replace the content of `Dockerfile` with:
 # Stage 1: Build the React app
 FROM node:22-alpine as build
 WORKDIR /app
-# Copy the content of the current directory
-COPY . .
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
 # Install dependencies
 RUN npm clean-install
+```
+
+Each instruction (FROM, WORKDIR, COPY, RUN etc) in a Dockerfile creates new
+layer.
+All the layers combined makes up the final image.
+Docker caches the layers and reuse layers from the cache when applicable.
+This helps to speed up the build process.
+If any of the instructions or any of the files you copy into the images changes
+then the cached layer is discarded.
+
+We can take advantage of the caching by only copying `package.json` and
+`package-lock.json` (using
+[glob](<https://en.wikipedia.org/wiki/Glob_(programming)>) pattern) before
+installing dependencies.
+That way `RUN npm clean-install` only happens again when the dependencies
+change, regardless of changes to any of the source code.
+
+Read more about [Docker build cache](https://docs.docker.com/build/cache/).
+
+### Build the app
+
+Append the following to `Dockerfile`:
+
+```Dockerfile
+# Copy the rest of the application source code
+COPY . .
+
 # Build the React application
 RUN npm run build
 ```
 
+If any of the source code change it will invalidate the cache for `COPY . .` layer.
+The copy instruction and all following instruction will be run again.
+
 Notice that we have `as build` at the end of `FROM node:22-alpine as build`.
 It allows us to refer to this staged from another stage.
 
+Try it out by building with:
+
+```sh
+docker build -t react-app .
+```
+
+Then add a line-break somewhere in `src/App.tsx` and build again.
+The output shows what layers have been reused from cache.
+
+```text
+ => CACHED [2/6] WORKDIR /app             0.0s
+ => CACHED [3/6] COPY package*.json ./    0.0s
+ => CACHED [4/6] RUN npm clean-install    0.0s
+ => [5/6] COPY . .                        1.4s
+ => [6/6] RUN npm run build               7.0s
+```
+
 ## Serve stage
+
+For this we will use `nginx:alpine` as the base image.
+By default it serves files from `/usr/share/nginx/html` so that is where we
+will copy the output from `npm run build` to.
+We can copy files from a previous stage with `--from=` argument followed by
+name of the stage.
+
+We also expose port 80 (default HTTP port) and set a command to start nginx.
 
 Append this to your `Dockerfile`:
 
@@ -146,10 +202,6 @@ EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 ```
 
-Here we defined another stage with a different base image.
-We then copy just the build output (`/app/dist`) from the previous stage.
-Expose port 80 (default HTTP port) and set a command to start nginx.
-
 Build the container with:
 
 ```sh
@@ -163,7 +215,8 @@ docker build -t react-app .
 
 The tag `react-app` is now going to refer to the resulting image from the serve
 stage.
-The resulting image only contains the build-output.
+The resulting image contains (in addition to base image) only the output from
+`npm run build`.
 Not the source code, nor the dependencies.
 The size is just about 40MB, so that's pretty lightweight.
 
