@@ -240,13 +240,13 @@ Then open [http://localhost:8080](http://localhost:8080).
 You can check what containers you have running with:
 
 ```sh
-docker container list
+docker ps
 ```
 
 You can stop the container again with:
 
 ```sh
-docker container stop react-app
+docker stop react-app
 ```
 
 Name must match the name you gave when you started the container.
