@@ -25,7 +25,7 @@ npm run dev
 Open the local url in a web browser.
 You should see something like the screenshot.
 
-![screenshot of what the app is supposed to look like](./doc/screenshot.png)
+![screenshot of what the app is supposed to look like](./docs/screenshot.png)
 
 ## Build stage
 
