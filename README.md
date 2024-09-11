@@ -46,6 +46,11 @@ Build the image with:
 docker build -t react-app .
 ```
 
+| Argument       | Description                                                   |
+| -------------- | ------------------------------------------------------------- |
+| `-t react-app` | Tag(/name) the build image "react-app"                        |
+| `.`            | You have to supply the directory containing your `Dockerfile` |
+
 Check the size with:
 
 ```sh
@@ -57,7 +62,9 @@ Yikes, over 250MB 😧!
 Check the size of the base image:
 
 ```sh
+docker pull node:22-alpine
 docker image ls | grep -e "node *22-alpine"
+docker image rm node:22-alpine
 ```
 
 That is like 100MB less.
@@ -66,10 +73,10 @@ So, what is going on?
 
 ### Debug size issue
 
-You can run a shell in a container with:
+You can run a shell in a container image with:
 
 ```sh
-docker run -it --rm react-app /bin/sh
+docker run -it --rm react-app sh
 ```
 
 Try it!
@@ -117,7 +124,7 @@ Replace the content of `Dockerfile` with:
 
 ```Dockerfile
 # Stage 1: Build the React app
-FROM node:22-alpine as build
+FROM node:22-alpine AS build
 WORKDIR /app
 
 # Copy package.json and package-lock.json
@@ -182,8 +189,8 @@ The output shows what layers have been reused from cache.
 ## Serve stage
 
 For this we will use `nginx:alpine` as the base image.
-By default it serves files from `/usr/share/nginx/html` so that is where we
-will copy the output from `npm run build` to.
+By default, it serves files from `/usr/share/nginx/html`.
+So that is where we will copy the output from `npm run build` to.
 We can copy files from a previous stage with `--from=` argument followed by
 name of the stage.
 
@@ -207,11 +214,6 @@ Build the container with:
 ```sh
 docker build -t react-app .
 ```
-
-| Argument       | Description                                                                           |
-| -------------- | ------------------------------------------------------------------------------------- |
-| `-t react-app` | Means we are tagging the build image with "react-app".                                |
-| `.`            | You have to supply the directory container the `Dockerfile` to the build sub-command. |
 
 The tag `react-app` is now going to refer to the resulting image from the serve
 stage.
@@ -259,20 +261,16 @@ You can clean it all up with the following command:
 docker system prune
 ```
 
-Be careful when running the above command, as it will delete all data belonging
-to any stopped containers.
-So make sure that there is nothing docker related you need to keep around,
-before running the command.
-
 ## Closing thoughts
 
 In a real world scenario you would push your images to a registry such as
-Docker Hub, but that's step we will skip for now.
+Docker Hub.
+We will skip that for now.
 
 If you really want to know how it is done, you can find instructions
 [here](https://docs.docker.com/guides/workshop/04_sharing_app/).
 
-In this tutorial you've build the image on your local machine.
+In this tutorial you've built the image on your local machine.
 For a real application, one would commit `.dockerignore` and `Dockerfile` to Git.
 Then use something like GitHub Actions to build the docker image and push it to
 a registry for easy deployment.
